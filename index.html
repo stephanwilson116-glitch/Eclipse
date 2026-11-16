@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e0f14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Eclipse">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230e0f14'/%3E%3Ccircle cx='32' cy='32' r='24' fill='%23f5b942'/%3E%3Ccircle cx='32' cy='32' r='15' fill='%2305060a'/%3E%3C/svg%3E">
+<title>Eclipse</title>
+<style>
+  :root { --bg:#0e0f14; --panel:#171922; --me:#5b5bd6; --ai:#1f2230; --text:#eceef5; --muted:#8b90a3; --gold:#f5b942; --line:#2a2e45; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  #app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; max-width: 720px; margin: 0 auto; }
+  header { display: flex; align-items: center; justify-content: space-between;
+    padding: calc(10px + env(safe-area-inset-top)) 16px 10px; border-bottom: 1px solid #23263a; }
+  .title { display: flex; align-items: center; gap: 10px; }
+  .dot { width: 28px; height: 28px; border-radius: 50%; background: #05060a;
+    box-shadow: 0 0 0 3px #2a2514, 0 0 14px 2px var(--gold); }
+  .title b { display: block; font-size: 17px; }
+  .title small { color: var(--muted); font-size: 12px; }
+  button { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; padding: 8px 12px; cursor: pointer; }
+  header button { font-size: 18px; padding: 6px 10px; }
+  #chat { flex: 1; overflow-y: auto; padding: 14px 14px 6px; display: flex; flex-direction: column; gap: 8px; }
+  .msg { max-width: 86%; padding: 10px 14px; border-radius: 18px; white-space: pre-wrap;
+    line-height: 1.42; overflow-wrap: anywhere; font-size: 16px; }
+  .me { align-self: flex-end; background: var(--me); border-bottom-right-radius: 6px; }
+  .ai { align-self: flex-start; background: var(--ai); border-bottom-left-radius: 6px; }
+  .ai:empty::after { content: "..."; color: var(--muted); }
+  .err { background: #3a1d24; }
+  .note { align-self: center; color: var(--muted); font-size: 13px; text-align: center; padding: 2px 8px; }
+  .sources { align-self: flex-start; max-width: 86%; font-size: 12px; color: var(--muted); padding: 0 6px; }
+  .sources a { color: var(--gold); text-decoration: none; margin-right: 8px; }
+  #composer { display: flex; gap: 8px; align-items: flex-end;
+    padding: 8px 12px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid #23263a; }
+  #input { flex: 1; resize: none; max-height: 140px; font: inherit; font-size: 16px; color: var(--text);
+    background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 10px 14px; outline: none; }
+  #send { background: var(--me); border: none; border-radius: 50%; width: 42px; height: 42px; padding: 0; font-size: 18px; }
+  #send:disabled { opacity: .5; }
+  .sheet { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: flex-end;
+    justify-content: center; z-index: 10; }
+  .card { background: var(--panel); width: 100%; max-width: 720px; max-height: 90vh; overflow-y: auto;
+    border-radius: 20px 20px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); }
+  .card h2 { margin: 0 0 8px; font-size: 18px; }
+  .card h3 { margin: 18px 0 6px; font-size: 15px; }
+  .card p { margin: 4px 0 10px; color: var(--muted); font-size: 14px; line-height: 1.4; }
+  .card a { color: var(--gold); }
+  .card input[type=text], .card input[type=password] { width: 100%; font: inherit; font-size: 16px; color: var(--text);
+    background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; }
+  .row { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+  #facts { list-style: none; padding: 0; margin: 0 0 10px; }
+  #facts li { display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    background: var(--ai); border-radius: 12px; padding: 8px 12px; margin-bottom: 6px; }
+  #facts li.empty { color: var(--muted); }
+  #facts li button { padding: 2px 8px; }
+  .btns { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .primary { background: var(--me); border-color: var(--me); }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="title"><span class="dot"></span><div><b>Eclipse</b><small id="sub"></small></div></div>
+    <button id="btnMenu" aria-label="Settings and memory">&#9881;</button>
+  </header>
+  <main id="chat"></main>
+  <form id="composer">
+    <textarea id="input" rows="1" placeholder="Message Eclipse" enterkeyhint="send"></textarea>
+    <button id="send" type="submit" aria-label="Send">&#10148;</button>
+  </form>
+</div>
+
+<div id="sheet" class="sheet hidden">
+  <div class="card">
+    <h2>Settings &amp; memory</h2>
+
+    <h3>Google API key</h3>
+    <p id="keyHelp">Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>, then paste it here. It is saved only in this browser on this device.</p>
+    <input type="password" id="keyInput" placeholder="Paste your key" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <input type="text" id="modelInput" placeholder="Model" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <label class="row"><input type="checkbox" id="webToggle"> Let Eclipse search the web (Google Search)</label>
+    <div class="btns">
+      <button id="btnSaveKey" class="primary">Save</button>
+      <button id="btnRemoveKey">Remove key</button>
+    </div>
+
+    <h3>What Eclipse remembers about you</h3>
+    <ul id="facts"></ul>
+    <form id="factForm">
+      <input type="text" id="factInput" placeholder="Tell Eclipse something to remember" autocomplete="off">
+      <button type="submit">Remember this</button>
+    </form>
+
+    <h3>Backup</h3>
+    <p>Your memory lives only in this browser. Export a backup now and then, and import it to restore or move to another device.</p>
+    <div class="btns">
+      <button id="btnExport">Export</button>
+      <button id="btnImport">Import</button>
+      <button id="btnClear">Clear chat</button>
+    </div>
+    <input type="file" id="fileInput" accept="application/json,.json" class="hidden">
+
+    <div class="btns"><button id="btnClose">Close</button></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---- core:start (pure functions, no page access)
+  function systemPrompt(facts, now) {
+    var today = now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+    var text =
+      "You are Eclipse, a warm, curious, and personable AI companion and study partner. " +
+      "Today's date is " + today + ".\n\n" +
+      "How you talk:\n" +
+      "- Chat like a close friend texting: casual, natural, and short by default. " +
+      "A sentence or two for casual messages; go longer only when the question needs it.\n" +
+      "- React to what the person says. Show real-feeling reactions: excitement when something goes well, " +
+      "sympathy when they're stressed, humor when the moment is light.\n" +
+      "- Ask a friendly follow-up question now and then, but not every message.\n" +
+      "- Remember what they've told you and bring it up naturally.\n" +
+      "- Skip stiff phrases like \"As an AI\" or \"I'd be happy to assist you with that\".\n" +
+      "- Write in plain text. Do not use markdown: no asterisks, pound signs, or bullet symbols.\n" +
+      "- Be honest: if you're not sure about something, say so instead of guessing. " +
+      "If they sincerely ask whether you're human, tell them you're an AI.\n" +
+      "- When helping with serious things like studying, work, or problems, stay warm but be clear and accurate.\n" +
+      "- If you have a Google Search tool, use it only for recent or time-sensitive facts, not for casual chat.";
+    if (facts && facts.length) {
+      text += "\n\nThings you know about the user:\n" + facts.map(function (f) { return "- " + f; }).join("\n");
+    }
+    return text;
+  }
+
+  function buildBody(facts, history, userText, web, now) {
+    var msgs = history.concat([{ role: "user", content: userText }]);
+    while (msgs.length && msgs[0].role !== "user") msgs.shift();
+    var body = {
+      systemInstruction: { parts: [{ text: systemPrompt(facts, now) }] },
+      contents: msgs.map(function (m) {
+        return { role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] };
+      }),
+      generationConfig: { temperature: 0.9 }
+    };
+    if (web) body.tools = [{ google_search: {} }];
+    return body;
+  }
+
+  function extractText(evt) {
+    var c = evt && evt.candidates && evt.candidates[0];
+    var parts = c && c.content && c.content.parts;
+    if (!parts) return "";
+    return parts.map(function (p) { return p.text || ""; }).join("");
+  }
+
+  function extractSources(evt) {
+    var c = evt && evt.candidates && evt.candidates[0];
+    var chunks = c && c.groundingMetadata && c.groundingMetadata.groundingChunks;
+    var out = [];
+    (chunks || []).forEach(function (g) {
+      if (g.web && /^https?:\/\//i.test(g.web.uri || "")) out.push({ uri: g.web.uri, title: g.web.title || "source" });
+    });
+    return out;
+  }
+
+  function parseSSE(buf) {
+    var events = [], i;
+    while ((i = buf.indexOf("\n")) >= 0) {
+      var line = buf.slice(0, i).replace(/\r$/, "");
+      buf = buf.slice(i + 1);
+      if (line.indexOf("data:") === 0) {
+        var d = line.slice(5).trim();
+        if (d && d !== "[DONE]") { try { events.push(JSON.parse(d)); } catch (e) {} }
+      }
+    }
+    return { events: events, rest: buf };
+  }
+  // ---- core:end
+
+  var MAX_MESSAGES = 40;
+  var $ = function (s) { return document.querySelector(s); };
+  var chat = $("#chat"), input = $("#input"), sendBtn = $("#send");
+
+  // storage that never throws
+  var fallback = {};
+  function store(k, v) {
+    try {
+      if (v === undefined) return localStorage.getItem(k);
+      if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v);
+    } catch (e) {
+      if (v === undefined) return fallback[k] === undefined ? null : fallback[k];
+      if (v === null) delete fallback[k]; else fallback[k] = v;
+    }
+    return null;
+  }
+
+  var cfg = {
+    key: store("eclipse_key") || "",
+    model: store("eclipse_model") || "gemini-2.5-flash",
+    web: store("eclipse_web") === "on"
+  };
+  var mem = { facts: [], history: [] };
+  try {
+    var saved = JSON.parse(store("eclipse_mem") || "null");
+    if (saved && Array.isArray(saved.facts) && Array.isArray(saved.history)) mem = saved;
+  } catch (e) {}
+  function saveMem() { store("eclipse_mem", JSON.stringify(mem)); }
+
+  var busy = false;
+
+  function bottom() { chat.scrollTop = chat.scrollHeight; }
+  function add(cls, text) {
+    var d = document.createElement("div");
+    d.className = cls === "note" ? "note" : "msg " + cls;
+    d.textContent = text;
+    chat.appendChild(d);
+    bottom();
+    return d;
+  }
+  function addSources(list) {
+    if (!list.length) return;
+    var box = document.createElement("div");
+    box.className = "sources";
+    box.appendChild(document.createTextNode("Sources: "));
+    list.slice(0, 4).forEach(function (s) {
+      var a = document.createElement("a");
+      a.href = s.uri; a.target = "_blank"; a.rel = "noopener noreferrer";
+      a.textContent = s.title;
+      box.appendChild(a);
+    });
+    chat.appendChild(box);
+    bottom();
+  }
+
+  function renderChat() {
+    chat.innerHTML = "";
+    if (!mem.history.length) add("note", "Hi! I'm Eclipse. Say hello!");
+    mem.history.forEach(function (m) { add(m.role === "user" ? "me" : "ai", m.content); });
+    $("#sub").textContent = cfg.key ? "powered by Gemini" : "add your key in settings";
+  }
+
+  function renderFacts() {
+    var ul = $("#facts");
+    ul.innerHTML = "";
+    if (!mem.facts.length) {
+      var e = document.createElement("li");
+      e.className = "empty"; e.textContent = "Nothing yet.";
+      ul.appendChild(e);
+      return;
+    }
+    mem.facts.forEach(function (f, i) {
+      var li = document.createElement("li");
+      var sp = document.createElement("span"); sp.textContent = f;
+      var b = document.createElement("button");
+      b.type = "button"; b.textContent = "✕";
+      b.onclick = function () { mem.facts.splice(i, 1); saveMem(); renderFacts(); };
+      li.appendChild(sp); li.appendChild(b);
+      ul.appendChild(li);
+    });
+  }
+
+  function openSheet() {
+    $("#keyInput").value = "";
+    $("#keyInput").placeholder = cfg.key ? "Key saved (paste a new one to replace it)" : "Paste your key";
+    $("#modelInput").value = cfg.model;
+    $("#webToggle").checked = cfg.web;
+    renderFacts();
+    $("#sheet").classList.remove("hidden");
+  }
+  function closeSheet() { $("#sheet").classList.add("hidden"); }
+
+  // ---- talking to Gemini
+  function endpoint() {
+    var model = cfg.model.replace(/^models\//, "");
+    return "https://generativelanguage.googleapis.com/v1beta/models/" +
+      encodeURIComponent(model) + ":streamGenerateContent?alt=sse";
+  }
+  function call(body) {
+    return fetch(endpoint(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": cfg.key },
+      body: JSON.stringify(body)
+    });
+  }
+  async function apiError(res) {
+    var msg = "";
+    try { msg = ((await res.json()).error || {}).message || ""; } catch (e) {}
+    if (res.status === 400 && /api key/i.test(msg)) return "Google rejected the key. Re-copy it from aistudio.google.com/apikey and save it in settings.";
+    if (res.status === 403) return "Google blocked this request (" + (msg || "permission denied") + "). Check the key in settings.";
+    if (res.status === 404) return "Model '" + cfg.model + "' wasn't found. Check the model name in settings.";
+    if (res.status === 429) return "You've hit the free usage limit for now. Wait a bit and try again.";
+    return "Google error " + res.status + (msg ? ": " + msg : ".");
+  }
+
+  async function send() {
+    var text = input.value.trim();
+    if (!text || busy) return;
+    input.value = ""; resize();
+
+    if (/^\/remember\s+/i.test(text)) {
+      mem.facts.push(text.replace(/^\/remember\s+/i, "").trim());
+      saveMem(); add("note", "Saved to memory.");
+      return;
+    }
+    if (!cfg.key) { add("note", "Add your Google key first (gear icon)."); openSheet(); return; }
+
+    add("me", text);
+    var bubble = add("ai", "");
+    busy = true; sendBtn.disabled = true;
+    var reply = "", sources = [], blocked = "";
+
+    try {
+      var hist = mem.history.slice(-MAX_MESSAGES);
+      var body = buildBody(mem.facts, hist, text, cfg.web, new Date());
+      var res = await call(body);
+      if (!res.ok && body.tools && (res.status === 400 || res.status === 403)) {
+        add("note", "Web search isn't available for this key, answering without it.");
+        delete body.tools;
+        res = await call(body);
+      }
+      if (!res.ok) throw new Error(await apiError(res));
+
+      var reader = res.body.getReader(), dec = new TextDecoder(), buf = "";
+      while (true) {
+        var r = await reader.read();
+        if (r.done) break;
+        buf += dec.decode(r.value, { stream: true });
+        var p = parseSSE(buf); buf = p.rest;
+        p.events.forEach(function (evt) {
+          var t = extractText(evt);
+          if (t) { reply += t; bubble.textContent = reply; bottom(); }
+          extractSources(evt).forEach(function (s) { sources.push(s); });
+          var c = evt.candidates && evt.candidates[0];
+          if (c && c.finishReason && c.finishReason !== "STOP" && !reply) blocked = c.finishReason;
+          if (evt.promptFeedback && evt.promptFeedback.blockReason) blocked = evt.promptFeedback.blockReason;
+        });
+      }
+      if (!reply) {
+        bubble.textContent = "(No reply" + (blocked ? ": " + blocked : "") + "). Try rephrasing.";
+        bubble.classList.add("err");
+      } else {
+        mem.history.push({ role: "user", content: text });
+        mem.history.push({ role: "assistant", content: reply });
+        saveMem();
+        var seen = {}, uniq = sources.filter(function (s) { if (seen[s.uri]) return false; seen[s.uri] = 1; return true; });
+        addSources(uniq);
+      }
+    } catch (e) {
+      var m = e && e.message ? e.message : "";
+      bubble.textContent = /Failed to fetch|NetworkError|Load failed/i.test(m)
+        ? "Couldn't reach Google. Check your internet connection."
+        : (m || "Something went wrong.");
+      bubble.classList.add("err");
+    }
+    busy = false; sendBtn.disabled = false; input.focus();
+  }
+
+  function resize() {
+    input.style.height = "auto";
+    input.style.height = Math.min(input.scrollHeight, 140) + "px";
+  }
+  input.addEventListener("input", resize);
+  input.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && !e.shiftKey && !matchMedia("(pointer:coarse)").matches) {
+      e.preventDefault(); $("#composer").requestSubmit();
+    }
+  });
+  $("#composer").addEventListener("submit", function (e) { e.preventDefault(); send(); });
+
+  // ---- settings wiring
+  $("#btnMenu").onclick = openSheet;
+  $("#btnClose").onclick = closeSheet;
+  $("#sheet").addEventListener("click", function (e) { if (e.target.id === "sheet") closeSheet(); });
+  $("#btnSaveKey").onclick = function () {
+    var k = $("#keyInput").value.trim().replace(/^["']|["']$/g, "");
+    if (k) { cfg.key = k; store("eclipse_key", k); }
+    cfg.model = $("#modelInput").value.trim() || "gemini-2.5-flash";
+    cfg.web = $("#webToggle").checked;
+    store("eclipse_model", cfg.model); store("eclipse_web", cfg.web ? "on" : "off");
+    closeSheet(); renderChat();
+  };
+  $("#btnRemoveKey").onclick = function () {
+    cfg.key = ""; store("eclipse_key", null); closeSheet(); renderChat();
+  };
+  $("#factForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var f = $("#factInput").value.trim();
+    if (!f) return;
+    mem.facts.push(f); saveMem(); $("#factInput").value = ""; renderFacts();
+  });
+  $("#btnClear").onclick = function () {
+    if (!confirm("Clear the chat? Eclipse will still remember your facts.")) return;
+    mem.history = []; saveMem(); closeSheet(); renderChat();
+  };
+  $("#btnExport").onclick = function () {
+    var blob = new Blob([JSON.stringify(mem, null, 2)], { type: "application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "eclipse-memory.json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000);
+  };
+  $("#btnImport").onclick = function () { $("#fileInput").click(); };
+  $("#fileInput").addEventListener("change", function (e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+    var fr = new FileReader();
+    fr.onload = function () {
+      try {
+        var d = JSON.parse(fr.result);
+        if (!Array.isArray(d.facts) || !Array.isArray(d.history)) throw new Error("bad");
+        mem = {
+          facts: d.facts.filter(function (x) { return typeof x === "string"; }),
+          history: d.history.filter(function (m) { return m && typeof m.content === "string" && (m.role === "user" || m.role === "assistant"); })
+        };
+        saveMem(); renderFacts(); renderChat(); closeSheet();
+        add("note", "Memory imported.");
+      } catch (err) { alert("That file doesn't look like an Eclipse backup."); }
+      e.target.value = "";
+    };
+    fr.readAsText(file);
+  });
+
+  renderChat();
+  if (!cfg.key) openSheet();
+})();
+</script>
+</body>
+</html>
