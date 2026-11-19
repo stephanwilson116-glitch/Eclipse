@@ -1,0 +1,817 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e0f14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Eclipse">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230e0f14'/%3E%3Ccircle cx='32' cy='32' r='24' fill='%23f5b942'/%3E%3Ccircle cx='32' cy='32' r='15' fill='%2305060a'/%3E%3C/svg%3E">
+<title>Eclipse</title>
+<style>
+  :root { --bg:#0e0f14; --panel:#171922; --me:#5b5bd6; --ai:#1f2230; --text:#eceef5; --muted:#8b90a3; --gold:#f5b942; --line:#2a2e45; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  #app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; max-width: 720px; margin: 0 auto; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: calc(10px + env(safe-area-inset-top)) 16px 10px; border-bottom: 1px solid #23263a; }
+  .title { display: flex; align-items: center; gap: 10px; }
+  .dot { width: 28px; height: 28px; border-radius: 50%; background: #05060a; box-shadow: 0 0 0 3px #2a2514, 0 0 14px 2px var(--gold); }
+  .title b { display: block; font-size: 17px; }
+  .title small { color: var(--muted); font-size: 12px; }
+  .tools { display: flex; gap: 6px; }
+  button { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; padding: 8px 12px; cursor: pointer; }
+  button.on { border-color: var(--gold); }
+  header button { font-size: 18px; padding: 6px 10px; }
+  #chat { flex: 1; overflow-y: auto; padding: 14px 14px 6px; display: flex; flex-direction: column; gap: 8px; }
+  .msg { max-width: 86%; padding: 10px 14px; border-radius: 18px; white-space: pre-wrap;
+    line-height: 1.42; overflow-wrap: anywhere; font-size: 16px; }
+  .me { align-self: flex-end; background: var(--me); border-bottom-right-radius: 6px; }
+  .ai { align-self: flex-start; background: var(--ai); border-bottom-left-radius: 6px; }
+  .ai:empty::after { content: "..."; color: var(--muted); }
+  .err { background: #3a1d24; }
+  .note { align-self: center; color: var(--muted); font-size: 13px; text-align: center; padding: 2px 8px; }
+  .sources { align-self: flex-start; max-width: 86%; font-size: 12px; color: var(--muted); padding: 0 6px; }
+  .sources a { color: var(--gold); text-decoration: none; margin-right: 8px; }
+  a.phonebtn { align-self: flex-start; background: var(--me); color: #fff; text-decoration: none; border-radius: 14px;
+    padding: 12px 18px; font-size: 16px; font-weight: 600; }
+  #chips { display: flex; gap: 8px; overflow-x: auto; padding: 8px 12px 0; scrollbar-width: none; border-top: 1px solid #23263a; }
+  #chips::-webkit-scrollbar { display: none; }
+  #chips button { flex: none; white-space: nowrap; border-radius: 999px; padding: 7px 14px; font-size: 14px; }
+  #preview { display: flex; align-items: center; gap: 10px; padding: 8px 12px 0; }
+  #preview img { height: 56px; width: 56px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); }
+  #preview span { color: var(--muted); font-size: 12px; flex: 1; }
+  .msg img.pic { display: block; max-width: 100%; max-height: 220px; border-radius: 12px; margin-bottom: 6px; }
+  #btnTalk.on { border-color: var(--gold); box-shadow: 0 0 10px var(--gold); }
+  #composer { display: flex; gap: 8px; align-items: flex-end;
+    padding: 8px 12px calc(10px + env(safe-area-inset-bottom)); }
+  #input { flex: 1; resize: none; max-height: 140px; font: inherit; font-size: 16px; color: var(--text);
+    background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 10px 14px; outline: none; }
+  #send, #mic, #photoBtn { border: none; border-radius: 50%; width: 42px; height: 42px; padding: 0; font-size: 18px; flex: none; }
+  #send { background: var(--me); }
+  #mic, #photoBtn { background: var(--panel); border: 1px solid var(--line); }
+  #mic.live { background: #b3261e; border-color: #b3261e; animation: pulse 1.2s infinite; }
+  @keyframes pulse { 50% { opacity: .6; } }
+  #send:disabled { opacity: .5; }
+  .sheet { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: flex-end; justify-content: center; z-index: 10; }
+  .card { background: var(--panel); width: 100%; max-width: 720px; max-height: 90vh; overflow-y: auto;
+    border-radius: 20px 20px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); }
+  .card h2 { margin: 0 0 8px; font-size: 18px; }
+  .card h3 { margin: 18px 0 6px; font-size: 15px; }
+  .card p { margin: 4px 0 10px; color: var(--muted); font-size: 14px; line-height: 1.4; }
+  .card a { color: var(--gold); }
+  .card input[type=text], .card input[type=password], .card textarea { width: 100%; font: inherit; font-size: 16px; color: var(--text);
+    background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; }
+  .card textarea { min-height: 84px; resize: vertical; }
+  .row { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+  #facts { list-style: none; padding: 0; margin: 0 0 10px; }
+  #facts li { display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    background: var(--ai); border-radius: 12px; padding: 8px 12px; margin-bottom: 6px; }
+  #facts li.empty { color: var(--muted); }
+  #facts li button { padding: 2px 8px; }
+  .btns { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .primary { background: var(--me); border-color: var(--me); }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="title"><span class="dot"></span><div><b>Eclipse</b><small id="sub"></small></div></div>
+    <div class="tools">
+      <button id="btnTalk" aria-label="Hands-free conversation">&#127911;</button>
+      <button id="btnSpeak" aria-label="Read replies out loud">&#128266;</button>
+      <button id="btnMenu" aria-label="Settings and memory">&#9881;</button>
+    </div>
+  </header>
+  <main id="chat"></main>
+  <div id="chips"></div>
+  <div id="preview" class="hidden"><img id="previewImg" alt=""><span>Photo ready. Photos are sent to Google.</span><button type="button" id="previewX" aria-label="Remove photo">&#10005;</button></div>
+  <form id="composer">
+    <button type="button" id="photoBtn" aria-label="Add a photo">&#128247;</button>
+    <button type="button" id="mic" aria-label="Speak">&#127908;</button>
+    <textarea id="input" rows="1" placeholder="Type or tap the mic" enterkeyhint="send"></textarea>
+    <button id="send" type="submit" aria-label="Send">&#10148;</button>
+  </form>
+  <input type="file" id="photoInput" accept="image/*" class="hidden">
+</div>
+
+<div id="sheet" class="sheet hidden">
+  <div class="card">
+    <h2>Settings &amp; memory</h2>
+
+    <h3>Google API key</h3>
+    <p>Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>, then paste it here. It is saved only in this browser on this device.</p>
+    <input type="password" id="keyInput" placeholder="Paste your key" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <input type="text" id="modelInput" placeholder="Model" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <label class="row"><input type="checkbox" id="webToggle"> Let Eclipse search the web (Google Search)</label>
+
+    <h3>Contacts for calls and texts</h3>
+    <p>One per line, like <b>Mom: +1 555 123 4567</b>. Only these names can be called or texted by name.</p>
+    <textarea id="contactsInput" autocapitalize="off" spellcheck="false"></textarea>
+
+    <h3>Your Shortcuts</h3>
+    <p>One per line, spelled exactly like the shortcuts you made in the Shortcuts app. Eclipse can only run these.</p>
+    <textarea id="shortcutsInput" autocapitalize="off" spellcheck="false"></textarea>
+
+    <h3>Saved places</h3>
+    <p>One per line, like <b>Home: 12 Main St, Albany NY</b>. Say "directions home" and Eclipse uses the address.</p>
+    <textarea id="placesInput" autocapitalize="off" spellcheck="false"></textarea>
+
+    <h3>Quick actions</h3>
+    <p>One per line, like <b>Good night | Say good night to me</b> (the button label, a bar, then what to send). Calls and places get buttons automatically.</p>
+    <textarea id="quickInput" autocapitalize="off" spellcheck="false"></textarea>
+
+    <div class="btns">
+      <button id="btnSaveKey" class="primary">Save</button>
+      <button id="btnRemoveKey">Remove key</button>
+    </div>
+
+    <h3>What Eclipse remembers about you</h3>
+    <ul id="facts"></ul>
+    <form id="factForm">
+      <input type="text" id="factInput" placeholder="Tell Eclipse something to remember" autocomplete="off">
+      <button type="submit">Remember this</button>
+    </form>
+
+    <h3>Backup</h3>
+    <p>Your memory, contacts and shortcuts live only in this browser. Export a backup now and then, and import it to restore or move to another device.</p>
+    <div class="btns">
+      <button id="btnExport">Export</button>
+      <button id="btnImport">Import</button>
+      <button id="btnClear">Clear chat</button>
+    </div>
+    <input type="file" id="fileInput" accept="application/json,.json" class="hidden">
+
+    <div class="btns"><button id="btnClose">Close</button></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---- core:start (pure functions, no page access)
+  function systemPrompt(facts, shortcuts, now, places) {
+    var today = now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+    var text =
+      "You are Eclipse, a warm, curious, and personable AI companion and study partner who can also help with the user's iPhone. " +
+      "Today's date is " + today + ".\n\n" +
+      "The user may be talking to you out loud, so keep replies short and natural, like a friend texting. " +
+      "A sentence or two for casual messages; go longer only when the question needs it. " +
+      "React like a real friend (excited when things go well, sympathetic when they're stressed), and ask a friendly follow-up now and then. " +
+      "Write in plain text. Do not use markdown: no asterisks, pound signs, or bullet symbols.\n\n" +
+      "About actions:\n" +
+      "- Only use an action when the user clearly asks for it. For plain chat, just talk.\n" +
+      "- Actions named phone_* put a button on the screen that the user must tap, because an iPhone doesn't allow silent actions. After using one, tell them to tap the button.\n" +
+      "- Use remember_fact when the user asks you to remember something about them.\n" +
+      "- If the user sends a photo, answer what they ask about it. If they ask nothing specific, say what you see and anything useful to know.\n" +
+      "- You are the phone version and cannot control the user's computer. If asked, say the PC helper has to be running for that.\n" +
+      "- You cannot do anything outside your action list. If asked, say it isn't something you can do yet.\n" +
+      "- Be honest: if you're not sure about something, say so instead of guessing. If they sincerely ask whether you're human, tell them you're an AI.";
+    if (shortcuts && shortcuts.length) text += "\n- The user's allowed Shortcuts are: " + shortcuts.join(", ") + ".";
+    var pn = Object.keys(places || {});
+    if (pn.length) text += "\n- The user's saved places are: " + pn.map(function (n) { return n + " = " + places[n]; }).join("; ") + ". When they name one, use its address.";
+    if (facts && facts.length) text += "\n\nThings you know about the user:\n" + facts.map(function (f) { return "- " + f; }).join("\n");
+    return text;
+  }
+
+  function declarations(shortcuts) {
+    function fn(name, desc, props, req) {
+      var p = {};
+      Object.keys(props).forEach(function (k) { p[k] = { type: props[k][0], description: props[k][1] }; });
+      return { name: name, description: desc, parameters: { type: "object", properties: p, required: req } };
+    }
+    var d = [
+      fn("phone_call", "Show a button to call someone. Use a saved contact name or a phone number.", { who: ["string", "Contact name or phone number"] }, ["who"]),
+      fn("phone_text", "Show a button that opens a drafted text message. The user taps Send themselves.", { who: ["string", "Contact name or phone number"], message: ["string", "The text to draft"] }, ["who", "message"]),
+      fn("phone_maps", "Show a button to open Apple Maps for a place, or for directions when a travel mode is given.",
+        { query: ["string", "Place, address, or destination"], travel: ["string", "Optional: driving, walking, or transit, to get directions instead of a search"] }, ["query"]),
+      fn("phone_open_link", "Show a button to open an https link.", { url: ["string", "Full https address"] }, ["url"]),
+      fn("remember_fact", "Save something about the user to long-term memory.", { fact: ["string", "The fact, written in a short sentence"] }, ["fact"])
+    ];
+    if (shortcuts && shortcuts.length) {
+      d.push(fn("phone_shortcut", "Show a button that runs one of the user's Shortcuts. Allowed: " + shortcuts.join(", ") + ".",
+        { name: ["string", "Shortcut name from the allowed list"], input_text: ["string", "Optional text to pass into the shortcut"] }, ["name"]));
+    }
+    return d;
+  }
+
+  // mode 0 = web search + actions, 1 = actions only, 2 = nothing (plain chat)
+  function buildBody(facts, shortcuts, contents, web, mode, now, places) {
+    var body = {
+      systemInstruction: { parts: [{ text: systemPrompt(facts, shortcuts, now, places) }] },
+      contents: contents,
+      generationConfig: { temperature: 0.9 }
+    };
+    var tools = [];
+    if (mode === 0 && web) tools.push({ google_search: {} });
+    if (mode <= 1) tools.push({ functionDeclarations: declarations(shortcuts) });
+    if (tools.length) body.tools = tools;
+    return body;
+  }
+
+  function historyContents(history, userText, image) {
+    var msgs = history.concat([{ role: "user", content: userText }]);
+    while (msgs.length && msgs[0].role !== "user") msgs.shift();
+    return msgs.map(function (m, i) {
+      var parts = [{ text: m.content }];
+      if (image && i === msgs.length - 1) parts.unshift({ inlineData: { mimeType: image.mime, data: image.data } });
+      return { role: m.role === "assistant" ? "model" : "user", parts: parts };
+    });
+  }
+
+  function resolveNumber(who, contacts) {
+    who = String(who || "").trim();
+    var names = Object.keys(contacts || {});
+    for (var i = 0; i < names.length; i++) {
+      if (names[i].toLowerCase() === who.toLowerCase()) return contacts[names[i]];
+    }
+    var digits = who.replace(/[^\d+]/g, "");
+    return /^\+?\d{7,15}$/.test(digits) ? digits : null;
+  }
+
+  function runAction(name, a, ctx) {
+    a = a || {};
+    function btn(label, url) {
+      return { result: { ok: true, note: "A button was shown on the screen. The user needs to tap it to finish, because an iPhone doesn't allow silent actions." },
+               button: { label: label, url: url } };
+    }
+    function fail(msg) { return { result: { error: msg } }; }
+    function unknownWho(who) {
+      var names = Object.keys(ctx.contacts || {});
+      return fail("I don't have a number for '" + who + "'. Saved contacts: " + (names.join(", ") || "none saved yet") + ".");
+    }
+    if (name === "phone_call") {
+      var n1 = resolveNumber(a.who, ctx.contacts);
+      return n1 ? btn("Call " + String(a.who).trim(), "tel:" + n1) : unknownWho(a.who);
+    }
+    if (name === "phone_text") {
+      var n2 = resolveNumber(a.who, ctx.contacts);
+      return n2 ? btn("Text " + String(a.who).trim(), "sms:" + n2 + "&body=" + encodeURIComponent(String(a.message || "").slice(0, 500))) : unknownWho(a.who);
+    }
+    if (name === "phone_maps") {
+      var q = String(a.query || "").trim();
+      if (!q) return fail("Say what to look for or where to go.");
+      var shown = q, pnames = Object.keys(ctx.places || {});
+      for (var pi = 0; pi < pnames.length; pi++) {
+        if (pnames[pi].toLowerCase() === q.toLowerCase()) { q = ctx.places[pnames[pi]]; break; }
+      }
+      var flag = { driving: "d", walking: "w", transit: "r" }[String(a.travel || "").toLowerCase()];
+      var murl = flag
+        ? "https://maps.apple.com/?daddr=" + encodeURIComponent(q.slice(0, 200)) + "&dirflg=" + flag
+        : "https://maps.apple.com/?q=" + encodeURIComponent(q.slice(0, 200));
+      return btn((flag ? "Directions: " : "Maps: ") + shown.slice(0, 50), murl);
+    }
+    if (name === "phone_open_link") {
+      var u = String(a.url || "").trim();
+      return /^https:\/\/\S+$/i.test(u) ? btn("Open link", u) : fail("Only https web addresses can be opened.");
+    }
+    if (name === "phone_shortcut") {
+      var want = String(a.name || "").trim().toLowerCase(), hit = null;
+      (ctx.shortcuts || []).forEach(function (s) { if (!hit && s.toLowerCase() === want) hit = s; });
+      if (!hit) return fail("'" + a.name + "' isn't an allowed shortcut. Allowed: " + ((ctx.shortcuts || []).join(", ") || "none") + ".");
+      var url = "shortcuts://run-shortcut?name=" + encodeURIComponent(hit);
+      if (String(a.input_text || "").trim()) url += "&input=text&text=" + encodeURIComponent(String(a.input_text).slice(0, 500));
+      return btn("Run shortcut: " + hit, url);
+    }
+    if (name === "remember_fact") {
+      var f = String(a.fact || "").trim().slice(0, 300);
+      if (!f) return fail("Nothing to remember.");
+      return { result: { ok: true, saved: f }, fact: f };
+    }
+    return fail("That isn't an action I'm allowed to do.");
+  }
+
+  // Keep the model's turn exactly as sent (function calls and their signatures), joining split text.
+  function mergeParts(parts) {
+    var out = [];
+    parts.forEach(function (p) {
+      if (p.thought) return;
+      var last = out[out.length - 1];
+      if (p.text !== undefined && !p.functionCall && !p.thoughtSignature && last && last.text !== undefined && !last.thoughtSignature && !last.functionCall) {
+        last.text += p.text;
+      } else {
+        out.push(JSON.parse(JSON.stringify(p)));
+      }
+    });
+    return out;
+  }
+
+  function extractSources(evt) {
+    var c = evt && evt.candidates && evt.candidates[0];
+    var chunks = c && c.groundingMetadata && c.groundingMetadata.groundingChunks;
+    var out = [];
+    (chunks || []).forEach(function (g) {
+      if (g.web && /^https?:\/\//i.test(g.web.uri || "")) out.push({ uri: g.web.uri, title: g.web.title || "source" });
+    });
+    return out;
+  }
+
+  function parseSSE(buf) {
+    var events = [], i;
+    while ((i = buf.indexOf("\n")) >= 0) {
+      var line = buf.slice(0, i).replace(/\r$/, "");
+      buf = buf.slice(i + 1);
+      if (line.indexOf("data:") === 0) {
+        var d = line.slice(5).trim();
+        if (d && d !== "[DONE]") { try { events.push(JSON.parse(d)); } catch (e) {} }
+      }
+    }
+    return { events: events, rest: buf };
+  }
+
+  function parseContacts(text) {
+    var out = {};
+    String(text || "").split("\n").forEach(function (line) {
+      var i = line.indexOf(":");
+      if (i < 1) return;
+      var name = line.slice(0, i).trim(), num = line.slice(i + 1).replace(/[^\d+]/g, "");
+      if (name && /^\+?\d{7,15}$/.test(num)) out[name] = num;
+    });
+    return out;
+  }
+  function parseShortcuts(text) {
+    return String(text || "").split("\n").map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 50);
+  }
+  function parsePlaces(text) {
+    var out = {};
+    String(text || "").split("\n").forEach(function (line) {
+      var i = line.indexOf(":");
+      if (i < 1) return;
+      var name = line.slice(0, i).trim(), addr = line.slice(i + 1).trim().slice(0, 200);
+      if (name && addr) out[name] = addr;
+    });
+    return out;
+  }
+  function parseQuick(text) {
+    var out = [];
+    String(text || "").split("\n").forEach(function (line) {
+      line = line.trim();
+      if (!line) return;
+      var i = line.indexOf("|"), label = line, send = line;
+      if (i > 0) { label = line.slice(0, i).trim(); send = line.slice(i + 1).trim(); }
+      if (label && send) out.push({ label: label.slice(0, 40), text: send.slice(0, 300) });
+    });
+    return out.slice(0, 12);
+  }
+  function cleanPlaces(o) {
+    var out = {};
+    if (o && typeof o === "object" && !Array.isArray(o)) {
+      Object.keys(o).forEach(function (k) { if (typeof o[k] === "string" && o[k].trim()) out[k] = o[k].slice(0, 200); });
+    }
+    return out;
+  }
+  function cleanQuick(a) {
+    return (Array.isArray(a) ? a : []).filter(function (q) { return q && typeof q.label === "string" && typeof q.text === "string" && q.label && q.text; }).slice(0, 12);
+  }
+  function buildChips(contacts, places, quick) {
+    var out = [{ label: "📷 Photo", action: "photo" }];
+    (quick || []).forEach(function (q) { out.push({ label: q.label, text: q.text }); });
+    Object.keys(contacts || {}).slice(0, 2).forEach(function (n) { out.push({ label: "Call " + n, text: "Call " + n }); });
+    Object.keys(places || {}).slice(0, 2).forEach(function (n) { out.push({ label: "Directions to " + n, text: "Give me directions to " + n }); });
+    return out.slice(0, 12);
+  }
+  // ---- core:end
+
+  var MAX_MESSAGES = 40, MAX_ROUNDS = 4;
+  var $ = function (s) { return document.querySelector(s); };
+  var chat = $("#chat"), input = $("#input"), sendBtn = $("#send"), micBtn = $("#mic");
+
+  var fallback = {};
+  function store(k, v) {
+    try {
+      if (v === undefined) return localStorage.getItem(k);
+      if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v);
+    } catch (e) {
+      if (v === undefined) return fallback[k] === undefined ? null : fallback[k];
+      if (v === null) delete fallback[k]; else fallback[k] = v;
+    }
+    return null;
+  }
+
+  var cfg = {
+    key: store("eclipse_key") || "",
+    model: store("eclipse_model") || "gemini-2.5-flash",
+    web: store("eclipse_web") === "on",
+    speak: store("eclipse_speak") === "on"
+  };
+  var mem = { facts: [], history: [], contacts: {}, shortcuts: [], places: {}, quick: [] };
+  try {
+    var saved = JSON.parse(store("eclipse_mem") || "null");
+    if (saved && Array.isArray(saved.facts) && Array.isArray(saved.history)) {
+      mem.facts = saved.facts; mem.history = saved.history;
+      if (saved.contacts && typeof saved.contacts === "object" && !Array.isArray(saved.contacts)) mem.contacts = saved.contacts;
+      if (Array.isArray(saved.shortcuts)) mem.shortcuts = saved.shortcuts;
+      mem.places = cleanPlaces(saved.places);
+      mem.quick = cleanQuick(saved.quick);
+    }
+  } catch (e) {}
+  function saveMem() { store("eclipse_mem", JSON.stringify(mem)); }
+
+  var busy = false, handsFree = false, emptyListens = 0, pending = null;
+
+  function bottom() { chat.scrollTop = chat.scrollHeight; }
+  function add(cls, text) {
+    var d = document.createElement("div");
+    d.className = cls === "note" ? "note" : "msg " + cls;
+    d.textContent = text;
+    chat.appendChild(d);
+    bottom();
+    return d;
+  }
+  function addButton(info) {
+    if (!/^(tel:|sms:|shortcuts:|https:)/i.test(info.url || "")) return;    // only safe link types
+    var a = document.createElement("a");
+    a.className = "phonebtn"; a.href = info.url;
+    a.textContent = info.label + "  (tap)";
+    if (/^https:/i.test(info.url)) { a.target = "_blank"; a.rel = "noopener noreferrer"; }
+    chat.appendChild(a); bottom();
+  }
+  function addSources(list) {
+    if (!list.length) return;
+    var box = document.createElement("div");
+    box.className = "sources";
+    box.appendChild(document.createTextNode("Sources: "));
+    list.slice(0, 4).forEach(function (s) {
+      var a = document.createElement("a");
+      a.href = s.uri; a.target = "_blank"; a.rel = "noopener noreferrer";
+      a.textContent = s.title;
+      box.appendChild(a);
+    });
+    chat.appendChild(box); bottom();
+  }
+
+  function renderChat() {
+    chat.innerHTML = "";
+    if (!mem.history.length) add("note", "Hi! I'm Eclipse. Tap the mic and tell me what to do.");
+    mem.history.forEach(function (m) { add(m.role === "user" ? "me" : "ai", m.content); });
+    $("#sub").textContent = cfg.key ? "powered by Gemini" : "add your key in settings";
+    renderChips();
+  }
+
+  function renderFacts() {
+    var ul = $("#facts");
+    ul.innerHTML = "";
+    if (!mem.facts.length) {
+      var e = document.createElement("li");
+      e.className = "empty"; e.textContent = "Nothing yet.";
+      ul.appendChild(e);
+      return;
+    }
+    mem.facts.forEach(function (f, i) {
+      var li = document.createElement("li");
+      var sp = document.createElement("span"); sp.textContent = f;
+      var b = document.createElement("button");
+      b.type = "button"; b.textContent = "✕";
+      b.onclick = function () { mem.facts.splice(i, 1); saveMem(); renderFacts(); };
+      li.appendChild(sp); li.appendChild(b);
+      ul.appendChild(li);
+    });
+  }
+
+  function openSheet() {
+    $("#keyInput").value = "";
+    $("#keyInput").placeholder = cfg.key ? "Key saved (paste a new one to replace it)" : "Paste your key";
+    $("#modelInput").value = cfg.model;
+    $("#webToggle").checked = cfg.web;
+    $("#contactsInput").value = Object.keys(mem.contacts).map(function (n) { return n + ": " + mem.contacts[n]; }).join("\n");
+    $("#shortcutsInput").value = mem.shortcuts.join("\n");
+    $("#placesInput").value = Object.keys(mem.places).map(function (n) { return n + ": " + mem.places[n]; }).join("\n");
+    $("#quickInput").value = mem.quick.map(function (q) { return q.label === q.text ? q.text : q.label + " | " + q.text; }).join("\n");
+    renderFacts();
+    $("#sheet").classList.remove("hidden");
+  }
+  function closeSheet() { $("#sheet").classList.add("hidden"); }
+
+  // ---- speaking replies
+  function speak(text, done) {
+    var finished = false;
+    function finish() { if (!finished) { finished = true; if (done) done(); } }
+    if ((!cfg.speak && !handsFree) || !window.speechSynthesis || !text) { finish(); return; }
+    try {
+      speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(text.slice(0, 600));
+      u.onend = finish; u.onerror = finish;
+      speechSynthesis.speak(u);
+      setTimeout(finish, 3000 + text.length * 90);     // safety net if the phone never says it finished
+    } catch (e) { finish(); }
+  }
+  function afterReply(text) { if (handsFree) speak(text, listenAgain); else speak(text); }
+  function paintSpeak() { $("#btnSpeak").classList.toggle("on", cfg.speak); }
+  $("#btnSpeak").onclick = function () {
+    cfg.speak = !cfg.speak; store("eclipse_speak", cfg.speak ? "on" : "off"); paintSpeak();
+    if (cfg.speak) speak("Okay, I'll read my replies out loud."); else if (window.speechSynthesis) speechSynthesis.cancel();
+  };
+  paintSpeak();
+
+  // ---- photos
+  function paintPreview() {
+    var box = $("#preview");
+    if (!pending) { box.classList.add("hidden"); $("#previewImg").removeAttribute("src"); return; }
+    $("#previewImg").src = pending.url;
+    box.classList.remove("hidden");
+  }
+  function shrink(file, cb) {                       // resize so uploads stay small and fast
+    var url = URL.createObjectURL(file), img = new Image();
+    img.onload = function () {
+      var s = Math.min(1, 1280 / Math.max(img.width, img.height));
+      var c = document.createElement("canvas");
+      c.width = Math.max(1, Math.round(img.width * s)); c.height = Math.max(1, Math.round(img.height * s));
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      var dataUrl = c.toDataURL("image/jpeg", 0.82);
+      cb({ mime: "image/jpeg", data: dataUrl.split(",")[1], url: dataUrl });
+    };
+    img.onerror = function () { URL.revokeObjectURL(url); cb(null); };
+    img.src = url;
+  }
+  $("#photoBtn").onclick = function () { $("#photoInput").click(); };
+  $("#photoInput").addEventListener("change", function (e) {
+    var f = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!f) return;
+    shrink(f, function (p) {
+      if (!p) { add("note", "Couldn't read that photo."); return; }
+      pending = p; paintPreview(); input.focus();
+    });
+  });
+  $("#previewX").onclick = function () { pending = null; paintPreview(); };
+
+  // ---- quick-action chips
+  function renderChips() {
+    var box = $("#chips");
+    box.innerHTML = "";
+    buildChips(mem.contacts, mem.places, mem.quick).forEach(function (c) {
+      var b = document.createElement("button");
+      b.type = "button"; b.textContent = c.label;
+      b.onclick = function () {
+        if (c.action === "photo") { $("#photoInput").click(); return; }
+        if (!busy) send(c.text);
+      };
+      box.appendChild(b);
+    });
+  }
+
+  // ---- talking to Gemini
+  function endpoint() {
+    var model = cfg.model.replace(/^models\//, "");
+    return "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":streamGenerateContent?alt=sse";
+  }
+  function call(body) {
+    return fetch(endpoint(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": cfg.key },
+      body: JSON.stringify(body)
+    });
+  }
+  async function apiError(res) {
+    var msg = "";
+    try { msg = ((await res.json()).error || {}).message || ""; } catch (e) {}
+    if (res.status === 400 && /api key/i.test(msg)) return "Google rejected the key. Re-copy it from aistudio.google.com/apikey and save it in settings.";
+    if (res.status === 403) return "Google blocked this request (" + (msg || "permission denied") + "). Check the key in settings.";
+    if (res.status === 404) return "Model '" + cfg.model + "' wasn't found. Check the model name in settings.";
+    if (res.status === 429) return "You've hit the free usage limit for now. Wait a bit and try again.";
+    return "Google error " + res.status + (msg ? ": " + msg : ".");
+  }
+
+  async function send(forced) {
+    var text = (typeof forced === "string" ? forced : input.value).trim();
+    if ((!text && !pending) || busy) return;
+    input.value = ""; resize();
+
+    if (/^\/remember\s+/i.test(text)) {
+      mem.facts.push(text.replace(/^\/remember\s+/i, "").trim());
+      saveMem(); add("note", "Saved to memory.");
+      return;
+    }
+    if (!cfg.key) { add("note", "Add your Google key first (gear icon)."); openSheet(); return; }
+
+    var img = pending; pending = null; paintPreview();
+    if (img && !text) text = "What is this? Tell me what you see and anything useful to know.";
+    var mine = add("me", "");
+    if (img) { var pic = document.createElement("img"); pic.className = "pic"; pic.src = img.url; pic.alt = "your photo"; mine.appendChild(pic); }
+    mine.appendChild(document.createTextNode(text));
+    var bubble = add("ai", "");
+    busy = true; sendBtn.disabled = true;
+    var reply = "", sources = [], blocked = "", state = { mode: cfg.web ? 0 : 1 };
+
+    try {
+      var contents = historyContents(mem.history.slice(-MAX_MESSAGES), text, img ? { mime: img.mime, data: img.data } : null);
+      for (var round = 0; round < MAX_ROUNDS; round++) {
+        var res;
+        while (true) {
+          res = await call(buildBody(mem.facts, mem.shortcuts, contents, cfg.web, state.mode, new Date(), mem.places));
+          if (res.ok) break;
+          if ((res.status === 400 || res.status === 403) && state.mode < 2) {
+            add("note", state.mode === 0 ? "Web search can't be combined with actions here, continuing without search." : "Actions aren't available right now, chatting only.");
+            chat.appendChild(bubble);
+            state.mode++;
+            continue;
+          }
+          throw new Error(await apiError(res));
+        }
+
+        var reader = res.body.getReader(), dec = new TextDecoder(), buf = "", allParts = [], calls = [];
+        if (reply && !/\n$/.test(reply)) reply += "\n";
+        while (true) {
+          var r = await reader.read();
+          if (r.done) break;
+          buf += dec.decode(r.value, { stream: true });
+          var p = parseSSE(buf); buf = p.rest;
+          p.events.forEach(function (evt) {
+            var c = evt.candidates && evt.candidates[0];
+            ((c && c.content && c.content.parts) || []).forEach(function (part) {
+              if (part.thought) return;
+              allParts.push(part);
+              if (part.text) { reply += part.text; bubble.textContent = reply; bottom(); }
+              if (part.functionCall) calls.push(part.functionCall);
+            });
+            extractSources(evt).forEach(function (s) { sources.push(s); });
+            if (c && c.finishReason && c.finishReason !== "STOP" && !reply && !calls.length) blocked = c.finishReason;
+            if (evt.promptFeedback && evt.promptFeedback.blockReason) blocked = evt.promptFeedback.blockReason;
+          });
+        }
+        if (!calls.length) break;
+
+        contents.push({ role: "model", parts: mergeParts(allParts) });
+        var answers = [];
+        calls.forEach(function (c) {
+          var out = runAction(c.name, c.args, { contacts: mem.contacts, shortcuts: mem.shortcuts, places: mem.places });
+          if (out.button) { addButton(out.button); chat.appendChild(bubble); }
+          if (out.fact) { mem.facts.push(out.fact); saveMem(); add("note", "Remembered: " + out.fact); chat.appendChild(bubble); }
+          answers.push({ functionResponse: { name: c.name, response: out.result } });
+        });
+        contents.push({ role: "user", parts: answers });
+      }
+
+      if (!reply.trim()) {
+        bubble.textContent = "(No reply" + (blocked ? ": " + blocked : "") + "). Try rephrasing.";
+        bubble.classList.add("err");
+        stopHandsFree();
+      } else {
+        mem.history.push({ role: "user", content: (img ? "[Photo] " : "") + text });
+        mem.history.push({ role: "assistant", content: reply.trim() });
+        saveMem();
+        var seen = {}, uniq = sources.filter(function (s) { if (seen[s.uri]) return false; seen[s.uri] = 1; return true; });
+        addSources(uniq);
+        afterReply(reply.trim());
+      }
+    } catch (e) {
+      var m = e && e.message ? e.message : "";
+      bubble.textContent = /Failed to fetch|NetworkError|Load failed/i.test(m)
+        ? "Couldn't reach Google. Check your internet connection."
+        : (m || "Something went wrong.");
+      bubble.classList.add("err");
+      stopHandsFree();
+    }
+    busy = false; sendBtn.disabled = false;
+  }
+
+  function resize() {
+    input.style.height = "auto";
+    input.style.height = Math.min(input.scrollHeight, 140) + "px";
+  }
+  input.addEventListener("input", resize);
+  input.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && !e.shiftKey && !matchMedia("(pointer:coarse)").matches) {
+      e.preventDefault(); $("#composer").requestSubmit();
+    }
+  });
+  $("#composer").addEventListener("submit", function (e) { e.preventDefault(); send(); });
+
+  // ---- microphone
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition, rec = null, listening = false;
+  function startListening(auto) {
+    if (!window.isSecureContext) { add("note", "The mic needs a secure https address. Or use your keyboard's dictation mic."); return; }
+    if (!SR) { add("note", "This browser can't do voice here. Use the dictation mic on your keyboard instead."); return; }
+    if (listening) { if (!auto) rec.stop(); return; }
+    try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) {}
+    var finalText = "";
+    rec = new SR(); rec.lang = "en-US"; rec.interimResults = true; rec.continuous = false;
+    rec.onstart = function () { listening = true; micBtn.classList.add("live"); };
+    rec.onresult = function (e) {
+      var t = "";
+      for (var i = 0; i < e.results.length; i++) t += e.results[i][0].transcript;
+      input.value = t; resize();
+      if (e.results[e.results.length - 1].isFinal) finalText = t;
+    };
+    rec.onerror = function (e) {
+      if (e.error !== "no-speech" && e.error !== "aborted") { add("note", "Mic problem: " + e.error); stopHandsFree(); }
+    };
+    rec.onend = function () {
+      listening = false; micBtn.classList.remove("live");
+      var said = finalText.trim();
+      if (said) {
+        if (handsFree && /^(stop|stop listening|goodbye|bye|that's all|thats all)\.?$/i.test(said)) {
+          stopHandsFree("Okay, I stopped listening."); input.value = ""; resize(); return;
+        }
+        emptyListens = 0; input.value = said; send();
+      } else if (handsFree) {
+        emptyListens++;
+        if (emptyListens >= 2) stopHandsFree("I stopped listening. Tap the headset to start again.");
+        else setTimeout(function () { listenAgain(); }, 300);
+      }
+    };
+    try { rec.start(); } catch (e) { add("note", "Couldn't start the mic."); stopHandsFree(); }
+  }
+  micBtn.onclick = function () { startListening(false); };
+
+  // ---- hands-free conversation: listen, answer out loud, listen again
+  function stopHandsFree(msg) {
+    if (!handsFree) return;
+    handsFree = false; emptyListens = 0;
+    $("#btnTalk").classList.remove("on");
+    try { if (rec && listening) rec.stop(); } catch (e) {}
+    if (msg) add("note", msg);
+  }
+  function listenAgain() { if (handsFree && !busy) startListening(true); }
+  $("#btnTalk").onclick = function () {
+    if (handsFree) { stopHandsFree("Hands-free is off."); return; }
+    if (!window.isSecureContext || !SR) { add("note", "Hands-free needs voice recognition on a secure address, which this browser doesn't offer here."); return; }
+    handsFree = true; emptyListens = 0;
+    $("#btnTalk").classList.add("on");
+    add("note", "Hands-free is on. Just talk, and say \"stop\" to end it.");
+    startListening(true);
+  };
+
+  // ---- settings wiring
+  $("#btnMenu").onclick = openSheet;
+  $("#btnClose").onclick = closeSheet;
+  $("#sheet").addEventListener("click", function (e) { if (e.target.id === "sheet") closeSheet(); });
+  $("#btnSaveKey").onclick = function () {
+    var k = $("#keyInput").value.trim().replace(/^["']|["']$/g, "");
+    if (k) { cfg.key = k; store("eclipse_key", k); }
+    cfg.model = $("#modelInput").value.trim() || "gemini-2.5-flash";
+    cfg.web = $("#webToggle").checked;
+    store("eclipse_model", cfg.model); store("eclipse_web", cfg.web ? "on" : "off");
+    mem.contacts = parseContacts($("#contactsInput").value);
+    mem.shortcuts = parseShortcuts($("#shortcutsInput").value);
+    mem.places = parsePlaces($("#placesInput").value);
+    mem.quick = parseQuick($("#quickInput").value);
+    saveMem();
+    closeSheet(); renderChat();
+  };
+  $("#btnRemoveKey").onclick = function () {
+    cfg.key = ""; store("eclipse_key", null); closeSheet(); renderChat();
+  };
+  $("#factForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var f = $("#factInput").value.trim();
+    if (!f) return;
+    mem.facts.push(f); saveMem(); $("#factInput").value = ""; renderFacts();
+  });
+  $("#btnClear").onclick = function () {
+    if (!confirm("Clear the chat? Eclipse will still remember your facts.")) return;
+    mem.history = []; saveMem(); closeSheet(); renderChat();
+  };
+  $("#btnExport").onclick = function () {
+    var blob = new Blob([JSON.stringify(mem, null, 2)], { type: "application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "eclipse-memory.json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000);
+  };
+  $("#btnImport").onclick = function () { $("#fileInput").click(); };
+  $("#fileInput").addEventListener("change", function (e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+    var fr = new FileReader();
+    fr.onload = function () {
+      try {
+        var d = JSON.parse(fr.result);
+        if (!Array.isArray(d.facts) || !Array.isArray(d.history)) throw new Error("bad");
+        var contacts = {};
+        if (d.contacts && typeof d.contacts === "object" && !Array.isArray(d.contacts)) {
+          Object.keys(d.contacts).forEach(function (n) {
+            var num = String(d.contacts[n]).replace(/[^\d+]/g, "");
+            if (/^\+?\d{7,15}$/.test(num)) contacts[n] = num;
+          });
+        }
+        mem = {
+          facts: d.facts.filter(function (x) { return typeof x === "string"; }),
+          history: d.history.filter(function (m) { return m && typeof m.content === "string" && (m.role === "user" || m.role === "assistant"); }),
+          contacts: contacts,
+          places: cleanPlaces(d.places),
+          quick: cleanQuick(d.quick),
+          shortcuts: Array.isArray(d.shortcuts) ? d.shortcuts.filter(function (x) { return typeof x === "string" && x.trim(); }) : []
+        };
+        saveMem(); renderFacts(); renderChat(); closeSheet();
+        add("note", "Memory imported.");
+      } catch (err) { alert("That file doesn't look like an Eclipse backup."); }
+      e.target.value = "";
+    };
+    fr.readAsText(file);
+  });
+
+  renderChat();
+  if (!cfg.key) openSheet();
+})();
+</script>
+</body>
+</html>
